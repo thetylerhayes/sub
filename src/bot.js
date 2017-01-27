@@ -2,24 +2,33 @@ const Crypto = require('crypto');
 
 class NotifyBot {
   constructor(sdk) {
-    this.onMessage = this.onMessage.bind(this);
+    this.onResub = this.onResub.bind(this);
+    this.onSubscription = this.onSubscription.bind(this);
+    this.handleSubs = this.handleSubs.bind(this);
     this.randomChoices = this.randomChoices.bind(this);
     this.sdk = sdk; 
   }
 
-  onSubscription(user_state) {
+  onResub(channel, username, months, message){
+    this.handleSubs(username, months, message, true);
+  }
+
+  onSubscription(channel, username, method) {
+    this.handleSubs(username, 0, '', false);
+  }
+
+  handleSubs(username, months, message, resub) {
     const channel_name = this.sdk.channel_name;
-    const twitch_name = user_state.username;
+    const twitch_name = username;
 
     const choices = [50, 50, 50, 50, 100, 100, 100, 100, 100, 100, 200, 200, 200, 200, 1500, 'jack'];
     const win = this.randomChoices(choices);
 
     const data = {
-      username: user_state.username,
-      color: user_state.color,
-      msgId: user_state['msg-id'] || null,
-      months: user_state['msg-param-months'] | null,
+      username: twitch_name,
+      months: months || null,
       win: win,
+      resub: resub
     };
 
     this.sdk.sendData(channel_name, twitch_name, 0, true, data);
@@ -28,8 +37,8 @@ class NotifyBot {
     if(totalCoins === 'jack'){
       totalCoins = 5000;
     }
-    if(user_state['msg-param-months']) {
-      totalCoins *= user_state['msg-param-months'];
+    if(args.months) {
+      totalCoins *= args.months;
     }
     this.sdk.addPoints(twitch_name,totalCoins).then(()=>{
       this.sdk.sendWhisper(twitch_name, `You won ${totalCoins} coins in the coin spin! They have been added to your wallet.`);

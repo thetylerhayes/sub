@@ -8,11 +8,14 @@ fabric.Object.prototype.originX = fabric.Object.prototype.originY = 'center';
 
 let wheel = null;
 let bg = null;
+let ray = null;
+let botBar = null;
 let username = null;
 let subscribed = null;
 let winsTxt = null;
 let winningsTxt = null;
-let ray = null;
+
+let globalOpts = null;
 
 class Notify {
 
@@ -33,17 +36,23 @@ class Notify {
     this.calculateFromEndPoint = this.calculateFromEndPoint.bind(this);
     this.afterSpin = this.afterSpin.bind(this);
     this.afterAnimation = this.afterAnimation.bind(this);
+    this.fadeIn = this.fadeIn.bind(this);
 
     this.canvas.on('object:added', (e) => {
       if (e.target && e.target._isWheel && !wheel) {
         wheel = e.target;
-        this.spin(e.target._optionsPassThrough);
       }
       if (e.target && e.target._isBg && !bg) {
         bg = e.target;
       }
       if(e.target && e.target._isRay && !ray){
         ray = e.target;
+      }
+      if(e.target && e.target._isBotBar && !botBar){
+        botBar = e.target;
+      }
+      if(wheel && bg && ray && botBar){
+        this.fadeIn(globalOpts);
       }
     });
 
@@ -53,6 +62,7 @@ class Notify {
   }
 
   render(options) {
+    globalOpts = options;
     this.canvas.setHeight(this.height);
     this.canvas.setWidth(this.width);
 
@@ -64,6 +74,7 @@ class Notify {
         .setAngle(180)
         .set('opacity', 0);
       img0._isRay = true;
+      img0._passThroughOpts = options;
       this.canvas.add(img0);
 
       fabric.Image.fromURL('https://s3-us-west-2.amazonaws.com/s.cdpn.io/1045838/wheel%402x.png', (img1) => {
@@ -71,24 +82,29 @@ class Notify {
           .setLeft(this.width / 2)
           .setTop(this.height / 1.095)
           .setWidth(this.width - this.width * .045)
+          .set('opacity', 0)
           .setHeight(this.width - this.width * .045);
         img1._isWheel = true;
-        img1._optionsPassThrough = options;
+        img1._passThroughOpts = options;
         this.canvas.add(img1);
         fabric.Image.fromURL('https://s3-us-west-2.amazonaws.com/s.cdpn.io/1045838/non-moving-parts%20copy.png', (img2) => {
           img2._isBg = true;
           img2
             .setLeft(this.width / 2)
             .setTop(this.height / 1.1)
+            .set('opacity', 0)
             .scaleToWidth(this.width);
+          img2._passThroughOpts = options;
           this.canvas.add(img2);
           fabric.Image.fromURL('https://s3-us-west-2.amazonaws.com/s.cdpn.io/1045838/bottom_bar%402x.png', (img3) => {
             img3
               .setLeft(this.width / 1.98)
-              .setTop(this.height / 1.095)
+              .setTop(this.height / 1.085)
+              .set('opacity', 0)
               .scaleToWidth(this.width);
+            img3._isBotBar = true;
+            img3._passThroughOpts = options;
             this.canvas.add(img3);
-
             this.canvas.add(
               username = new fabric.Text(`${options.username}`, {
                 width: this.width,
@@ -102,7 +118,7 @@ class Notify {
               })
             );
             this.canvas.add(
-              subscribed = new fabric.Text(options.isResub ? `${options.months} MONTH RESUB` : `NEW SUBSCRIBER`, {
+              subscribed = new fabric.Text(options.resub ? `${options.months} MONTH RESUB` : `NEW SUBSCRIBER`, {
                 width: this.width,
                 height: this.height,
                 left: this.width / 2,
@@ -144,6 +160,22 @@ class Notify {
       });
     });
 
+  }
+
+  fadeIn(options){
+    wheel.animate('opacity', 1, {
+      duration: 300,
+      onChange: this.canvas.renderAll.bind(this.canvas),
+    });
+    bg.animate('opacity', 1, {
+      duration: 300,
+      onChange: this.canvas.renderAll.bind(this.canvas),
+    });
+    botBar.animate('opacity', 1, {
+      duration: 300,
+      onChange: this.canvas.renderAll.bind(this.canvas),
+    });
+    this.spin(options);
   }
 
   calculateFromEndPoint(landOn){
@@ -263,10 +295,11 @@ class Notify {
           winsTxt = null;
           winningsTxt = null;
           ray = null;
+          botBar = null;
         }
       });
     });
-    setTimeout(this.finish, 400);
+    setTimeout(this.finish, 1000);
   }
 
   finish(){
